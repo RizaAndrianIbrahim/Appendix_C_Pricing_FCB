@@ -1,4 +1,3 @@
-# Appendix_C_Pricing_FCB
 # This appendix contains an R program that simulates Algorithm 1 to estimate solutions to the proposed flood catastrophe bond pricing model.
 # This script implements:
 # (1) ARIMAX/ARIMA-based forecasting for flood intensity, ONI, and SOI
