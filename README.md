@@ -98,8 +98,7 @@ C       <- 0.1      # Annual coupon rate
 R       <- 1        # Redemption value
 kappa_1 <- 0        # Coupon protection fraction
 theta_1 <- 0.5      # Redemption protection fraction
-mu      <- 553 # Cumulative loss trigger
-mu      <- 13.912896 # Cumulative loss trigger
+mu      <- 569.2214 # Cumulative loss trigger
 
 # --------------------------------------------------------------
 # Cox-Ingersoll-Ross model parameters
