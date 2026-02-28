@@ -1,7 +1,7 @@
 # This appendix contains an R program that simulates Algorithm 1 to estimate solutions to the proposed flood catastrophe bond pricing model.
 # This script implements:
 # (1) ARIMAX/ARIMA-based forecasting for flood intensity, ONI, and SOI
-# (2) Nested Monte Carlo simulation of flood occurrence and loss processes
+# (2) Monte Carlo simulation of flood occurrence and loss processes
 # (3) Valuation of flood catastrophe bonds under indemnity triggers
 #
 # NOTE:
@@ -78,33 +78,54 @@ m_soi <- Arima(
 )
 
 # --------------------------------------------------------------
-# Innovation standard deviations
+# Standard deviations of ARIMA error 
 # --------------------------------------------------------------
 s_lambda <- sd(residuals(m_lambda))
 s_oni    <- sd(residuals(m_oni))
 s_soi    <- sd(residuals(m_soi))
 
 # --------------------------------------------------------------
-# Distributional parameters
+# Gamma parameters for individual flood losses
 # --------------------------------------------------------------
-# Lognormal parameters for individual flood losses
-mu_X <- -4.3958
-s_X  <-  1.7972
-
-# Lognormal parameters for market interest rate
-a_delta <- 1.323743
-b_delta <- 0.0437087
-g_delta <- 0.0335219
+alpha_G <- 0.62549
+beta_G  <- 4.1955
 
 # --------------------------------------------------------------
 # Flood bond parameters
 # --------------------------------------------------------------
-T     <- 5        # Bond maturity
-C     <- 0.1      # Annual coupon rate
-R     <- 1        # Redemption value
-kappa <- 0        # Coupon protection fraction
-theta <- 0.5      # Redemption protection fraction
-mu_L  <- 14.0486197583297  # Cumulative loss trigger
+T       <- 5        # Bond maturity
+C       <- 0.1      # Annual coupon rate
+R       <- 1        # Redemption value
+kappa_1 <- 0        # Coupon protection fraction
+theta_1 <- 0.5      # Redemption protection fraction
+mu      <- 553 # Cumulative loss trigger
+mu      <- 13.912896 # Cumulative loss trigger
+
+# --------------------------------------------------------------
+# Cox-Ingersoll-Ross model parameters
+# --------------------------------------------------------------
+kappa_2 <- 0.20845
+theta_2 <- 0.08285
+sigma   <- 0.10944
+
+gamma_2 <- sqrt(kappa_2^2 + 2 * sigma^2)
+
+B_0 <- numeric(T)
+
+for (k in 1:T) {
+
+  D_0k <- 2*(exp(gamma_2*k) - 1) /
+          (2*gamma_2 +
+           (kappa_2 + gamma_2)*(exp(gamma_2*k) - 1))
+
+  C_0k <- (2*gamma_2 *
+           exp((kappa_2 + gamma_2)*k/2) /
+           (2*gamma_2 +
+            (kappa_2 + gamma_2)*(exp(gamma_2*k) - 1))) ^
+           (2*kappa_2*theta_2/sigma^2)
+
+  B_0[k] <- C_0k * exp(-D_0k * 0.0610416666666667)
+}
 
 # --------------------------------------------------------------
 # Monte Carlo configuration
@@ -203,7 +224,7 @@ for (w in 1:W) {
         f_new <- frcst_f + rpois(1, frcst_lambda[k])
         if (!valid_num(f_new)) next
 
-        l_new <- frcst_l + sum(rlnorm(f_new, meanlog = mu_X, sdlog = s_X))
+        l_new <- frcst_l + sum(rgamma(f_new, shape = alpha_G, scale = beta_G))
         if (!valid_num(l_new)) next
 
         frcst_flood[k]  <- f_new
@@ -219,16 +240,12 @@ for (w in 1:W) {
   # --------------------------------------------------------------
   # Protection level and bond valuation
   # --------------------------------------------------------------
-  PL[w, ] <- colMeans(frcst_loss <= mu_L)
+  PL[w, ] <- colMeans(frcst_loss <= mu)
 
   Ck <- 0
   for (k in 1:T) {
-    Ck <- Ck + C * ((1 - kappa) * PL[w, k] + kappa) *
-      (exp(-g_delta) * (1 + b_delta)^(-a_delta))^k
-
-    RT <- R * ((1 - theta) * PL[w, k] + theta) *
-      (exp(-g_delta) * (1 + b_delta)^(-a_delta))^k
-
+    Ck <- Ck + C * ((1 - kappa_1) * PL[w, k] + kappa_1) * B_0[k]
+    RT <- R * ((1 - theta_1) * PL[w, k] + theta_1) * B_0[k]
     VT[w, k] <- Ck + RT
   }
 }
