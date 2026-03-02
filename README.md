@@ -94,7 +94,7 @@ beta_G  <- 4.1955
 # Flood bond parameters
 # --------------------------------------------------------------
 T       <- 5        # Bond maturity
-C       <- 0.1      # Annual coupon rate
+C       <- 0.06     # Annual coupon rate
 R       <- 1        # Redemption value
 kappa_1 <- 0        # Coupon protection fraction
 theta_1 <- 0.5      # Redemption protection fraction
